@@ -1,7 +1,7 @@
 import requests
 
 # URL de tu aplicación en Render (reemplazar)
-RENDER_URL = "https://tu-app.onrender.com"
+RENDER_URL = "https://app-render-coin.onrender.com"
 
 # URL de una API pública de ejemplo (datos de criptomonedas)
 API_URL = "https://api.coincap.io/v2/assets?limit=3"
