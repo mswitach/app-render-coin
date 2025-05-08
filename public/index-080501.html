@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Analizar datos con CrewAI</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background-color: #f9f9f9; }
+    input, button { padding: 0.5rem; margin: 0.5rem 0; width: 100%; max-width: 500px; }
+    pre { background: #eee; padding: 1rem; overflow-x: auto; max-width: 90vw; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Analizar datos con IA (CrewAI + GPT-4)</h1>
+
+  <label for="url">URL de API externa (JSON):</label>
+  <input id="url" type="text" value="https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=3&page=1" />
+
+  <button onclick="enviar()">🚀 Analizar</button>
+
+  <h2>🧠 Análisis:</h2>
+  <pre id="resultado">Esperando análisis...</pre>
+
+  <script>
+    async function enviar() {
+      const url = document.getElementById("url").value;
+      const res = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ api_url: url })
+      });
+
+      const json = await res.json();
+      document.getElementById("resultado").textContent = JSON.stringify(json, null, 2);
+    }
+  </script>
+</body>
+</html>
+
