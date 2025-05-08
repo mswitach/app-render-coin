@@ -58,39 +58,22 @@
   <h2>🧠 Análisis generado:</h2>
   <pre id="resultado">-</pre>
 
-  <button onclick="toggleRaw()">📦 Mostrar/Ocultar datos crudos</button>
-  <div id="rawData" style="display:none;">
-    <h2>📄 Datos en crudo (raw_data):</h2>
-    <pre id="raw">-</pre>
-  </div>
-
   <script>
-    let mostrarRaw = false;
-
     function log(msg) {
       const logDiv = document.getElementById("log");
       logDiv.textContent += "\n" + msg;
-    }
-
-    function toggleRaw() {
-      mostrarRaw = !mostrarRaw;
-      document.getElementById("rawData").style.display = mostrarRaw ? "block" : "none";
     }
 
     async function analizar() {
       const url = document.getElementById("url").value;
       const logDiv = document.getElementById("log");
       const result = document.getElementById("resultado");
-      const raw = document.getElementById("raw");
       const spinner = document.getElementById("spinner");
 
       // Reset
       logDiv.textContent = "🔍 Iniciando análisis...";
       result.textContent = "-";
-      raw.textContent = "-";
       spinner.style.display = "inline-block";
-      document.getElementById("rawData").style.display = "none";
-      mostrarRaw = false;
 
       try {
         log("📡 Consultando API externa...");
@@ -110,7 +93,6 @@
         } else {
           log("✅ Análisis completado");
           result.textContent = json.analysis;
-          raw.textContent = JSON.stringify(json.raw_data, null, 2);
         }
       } catch (err) {
         log("❌ Error inesperado: " + err.message);
