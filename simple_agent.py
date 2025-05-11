@@ -3,6 +3,8 @@ from crewai import Agent, Task, Crew
 import requests
 import os
 import traceback
+from collections import defaultdict
+from datetime import datetime
 from agent_runner import run_agent_analysis  # ⬆️ Nueva importación
 
 # Habilitar carpeta de archivos estáticos
@@ -59,6 +61,64 @@ def analyze():
 
     except Exception as e:
         print("❌ Error durante el análisis:")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+# Ruta de proyección de pedidos por cliente
+@app.route('/pedidos', methods=['GET'])
+def proyectar_pedidos():
+    try:
+        print("🔄 GET /pedidos recibido")
+        url = "https://crono23.herokuapp.com/items"
+        response = requests.get(url)
+        pedidos = response.json()
+
+        # Filtrar solo pedidos completados ("Terminado Normal") y últimos 9 meses
+        pedidos_filtrados = [p for p in pedidos if p.get("entregado") == "Terminado Normal"]
+
+        # Agrupar por código y mes
+        historial = defaultdict(lambda: defaultdict(int))  # {codigo: {mes_año: cantidad}}
+        for p in pedidos_filtrados:
+            codigo = p.get("codigo", "Sin código")
+            fecha = p.get("fecha_entrega") or p.get("fecha_remito") or p.get("fecha_planificacion")
+            if not fecha:
+                continue
+            try:
+                fecha_dt = datetime.strptime(fecha, "%Y-%m-%d")
+                clave_mes = fecha_dt.strftime("%Y-%m")
+                historial[codigo][clave_mes] += 1
+            except:
+                continue
+
+        # Crear resumen para IA
+        resumen = "Resumen histórico de pedidos por cliente (últimos 9 meses):\n"
+        for codigo, meses in historial.items():
+            resumen += f"\nCliente {codigo}:\n"
+            for mes, cantidad in sorted(meses.items()):
+                resumen += f"  {mes}: {cantidad} pedidos\n"
+
+        # Ejecutar análisis con plantilla reutilizable
+        print("🤖 Ejecutando agente de predicción de demanda...")
+        analisis = run_agent_analysis(
+            datos=pedidos_filtrados,
+            resumen_preprocesado=resumen,
+            rol="Analista de demanda",
+            objetivo="Proyectar la cantidad de pedidos esperados por cliente para el mes de junio 2025",
+            backstory="Especialista en análisis de comportamiento de compra y pronóstico de demanda",
+            prompt_extra=(
+                "En base al historial de pedidos por cliente de los últimos 9 meses, proyectá la cantidad de pedidos \
+                esperados por cliente para el mes de junio 2025. Mostrá el resultado como una lista de clientes y su demanda esperada."
+            ),
+            modelo="gpt-4"
+        )
+
+        return jsonify({
+            "proyeccion": analisis,
+            "resumen": resumen
+        })
+
+    except Exception as e:
+        print("❌ Error en /pedidos:")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
