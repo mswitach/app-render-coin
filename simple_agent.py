@@ -39,7 +39,7 @@ def analyze():
         if api_response.status_code != 200:
             return jsonify({"error": f"API externa devolvió código {api_response.status_code}"}), 502
         api_data = api_response.json()
-        print("✅ Datos obtenidos de la API externa")
+        print(f"✅ Datos obtenidos: tipo {type(api_data)}, claves: {list(api_data.keys()) if isinstance(api_data, dict) else 'No es un dict'}")
 
         print("🧠 Ejecutando análisis con agente plantilla...")
         analysis = run_agent_analysis(
@@ -52,6 +52,7 @@ def analyze():
             modelo="gpt-4"
         )
 
+        print("✅ Análisis completado. Enviando respuesta...")
         return jsonify({
             "analysis": analysis,
             "raw_data": api_data
@@ -68,9 +69,11 @@ def proyectar_pedidos():
     try:
         print("🔄 GET /pedidos recibido")
         url = "https://crono23.herokuapp.com/items"
-        print("🌐 Consultando endpoint de pedidos...")
+        print(f"🌐 Consultando endpoint de pedidos en {url}...")
         response = requests.get(url)
         print(f"📡 Status API pedidos: {response.status_code}")
+        if response.status_code != 200:
+            return jsonify({"error": f"API de pedidos devolvió código {response.status_code}"}), 502
         pedidos = response.json()
         print(f"📦 Total pedidos recibidos: {len(pedidos)}")
 
