@@ -25,8 +25,12 @@ def home():
 @app.route('/analyze', methods=['POST'])
 def analyze():
     print("🔹 POST /analyze recibido")
-    api_url = "https://api.coincap.io/v2/assets?limit=3"  # URL fija
-    print(f"🔍 Usando URL fija: {api_url}")
+    data = request.json
+    api_url = data.get("api_url", "")
+    print(f"🔍 URL recibida: {api_url}")
+
+    if not api_url:
+        return jsonify({"error": "No se recibió una URL válida"}), 400
 
     try:
         print("🌐 Consultando API externa...")
