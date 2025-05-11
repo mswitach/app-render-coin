@@ -2,17 +2,15 @@ from flask import Flask, jsonify, send_from_directory
 import requests
 import os
 import traceback
-from openai import OpenAI
+import openai
 
 # Habilitar carpeta de archivos estáticos
 app = Flask(__name__, static_folder='public', static_url_path='')
 
 # Clave API de OpenAI
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+if not openai.api_key:
     print("❌ ERROR: Falta la clave OPENAI_API_KEY")
-
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Ruta principal (sirve index.html desde carpeta public/)
 @app.route('/')
@@ -38,14 +36,14 @@ def contar_items():
         # Usar OpenAI para una mini conclusión
         prompt = f"Recibimos {cantidad_total} pedidos. ¿Qué podrías decir brevemente sobre ese volumen?"
         print("🧠 Consultando OpenAI...")
-        respuesta = client.chat.completions.create(
+        respuesta = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "Sos un analista logístico conciso."},
                 {"role": "user", "content": prompt}
             ]
         )
-        conclusion = respuesta.choices[0].message.content
+        conclusion = respuesta.choices[0].message["content"]
 
         return jsonify({
             "total_items": cantidad_total,
@@ -62,4 +60,3 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Iniciando servidor Flask en el puerto {port}...")
     app.run(host='0.0.0.0', port=port)
-
