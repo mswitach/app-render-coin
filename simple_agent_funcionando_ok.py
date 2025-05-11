@@ -3,7 +3,6 @@ from crewai import Agent, Task, Crew
 import requests
 import os
 import traceback
-from agent_runner import run_agent_analysis  # ⬆️ Nueva importación
 
 # Habilitar carpeta de archivos estáticos
 app = Flask(__name__, static_folder='public', static_url_path='')
@@ -26,7 +25,7 @@ def analyze():
     data = request.json
     api_url = data.get('api_url')
     print(f"🔍 URL recibida: {api_url}")
-
+    
     if not api_url:
         return jsonify({"error": "Se requiere una URL de API"}), 400
 
@@ -40,20 +39,44 @@ def analyze():
         api_data = api_response.json()
         print("✅ Datos obtenidos de la API externa")
 
-        # 2. Ejecutar análisis con plantilla reutilizable
-        print("🧠 Ejecutando análisis con agente plantilla...")
-        analysis = run_agent_analysis(
-            datos=api_data,
-            resumen_preprocesado="",
-            rol="Analista de datos",
-            objetivo="Analizar datos y proporcionar información valiosa",
+        # 2. Crear un agente simple con CrewAI
+        print("🧠 Creando agente...")
+        agent = Agent(
+            role="Analista de datos",
+            goal="Analizar datos y proporcionar información valiosa",
             backstory="Experto en análisis de datos con años de experiencia",
-            prompt_extra="Analiza estos datos y proporciona conclusiones útiles:",
-            modelo="gpt-4"
+            verbose=True,
+            allow_delegation=False,
+            llm_config={
+                "api_key": OPENAI_API_KEY,
+                "model": "gpt-4"
+            }
         )
 
+        # 3. Crear una tarea para el agente
+        task_description = f"Analiza estos datos y proporciona conclusiones útiles: {api_data}"
+        print("📝 Creando tarea con datos recibidos")
+        task = Task(
+            description=task_description,
+            expected_output="Un análisis conciso de los datos proporcionados",
+            agent=agent
+        )
+
+        # 4. Crear un equipo con un solo agente
+        print("👥 Inicializando crew")
+        crew = Crew(
+            agents=[agent],
+            tasks=[task],
+            verbose=2
+        )
+
+        # 5. Ejecutar el equipo y obtener resultados
+        print("🚀 Ejecutando crew...")
+        result = crew.kickoff()
+        print("✅ Crew ejecutado correctamente")
+
         return jsonify({
-            "analysis": analysis,
+            "analysis": result,
             "raw_data": api_data
         })
 
