@@ -5,7 +5,7 @@ import os
 import traceback
 from collections import defaultdict
 from datetime import datetime
-from agent_runner import run_agent_analysis  # ⬆️ Nueva importación
+from agent_runner import run_agent_analysis
 
 # Habilitar carpeta de archivos estáticos
 app = Flask(__name__, static_folder='public', static_url_path='')
@@ -25,15 +25,10 @@ def home():
 @app.route('/analyze', methods=['POST'])
 def analyze():
     print("🔹 POST /analyze recibido")
-    data = request.json
-    api_url = data.get('api_url')
-    print(f"🔍 URL recibida: {api_url}")
-
-    if not api_url:
-        return jsonify({"error": "Se requiere una URL de API"}), 400
+    api_url = "https://api.coincap.io/v2/assets?limit=3"  # URL fija
+    print(f"🔍 Usando URL fija: {api_url}")
 
     try:
-        # 1. Obtener datos de la API externa
         print("🌐 Consultando API externa...")
         api_response = requests.get(api_url)
         print(f"📡 Status API externa: {api_response.status_code}")
@@ -42,7 +37,6 @@ def analyze():
         api_data = api_response.json()
         print("✅ Datos obtenidos de la API externa")
 
-        # 2. Ejecutar análisis con plantilla reutilizable
         print("🧠 Ejecutando análisis con agente plantilla...")
         analysis = run_agent_analysis(
             datos=api_data,
@@ -70,14 +64,16 @@ def proyectar_pedidos():
     try:
         print("🔄 GET /pedidos recibido")
         url = "https://crono23.herokuapp.com/items"
+        print("🌐 Consultando endpoint de pedidos...")
         response = requests.get(url)
+        print(f"📡 Status API pedidos: {response.status_code}")
         pedidos = response.json()
+        print(f"📦 Total pedidos recibidos: {len(pedidos)}")
 
-        # Filtrar solo pedidos completados ("Terminado Normal") y últimos 9 meses
         pedidos_filtrados = [p for p in pedidos if p.get("entregado") == "Terminado Normal"]
+        print(f"✅ Pedidos con estado 'Terminado Normal': {len(pedidos_filtrados)}")
 
-        # Agrupar por código y mes
-        historial = defaultdict(lambda: defaultdict(int))  # {codigo: {mes_año: cantidad}}
+        historial = defaultdict(lambda: defaultdict(int))
         for p in pedidos_filtrados:
             codigo = p.get("codigo", "Sin código")
             fecha = p.get("fecha_entrega") or p.get("fecha_remito") or p.get("fecha_planificacion")
@@ -87,18 +83,17 @@ def proyectar_pedidos():
                 fecha_dt = datetime.strptime(fecha, "%Y-%m-%d")
                 clave_mes = fecha_dt.strftime("%Y-%m")
                 historial[codigo][clave_mes] += 1
-            except:
+            except Exception as fe:
+                print(f"⚠️ Fecha inválida para pedido {p.get('id')}: {fecha}")
                 continue
 
-        # Crear resumen para IA
         resumen = "Resumen histórico de pedidos por cliente (últimos 9 meses):\n"
         for codigo, meses in historial.items():
             resumen += f"\nCliente {codigo}:\n"
             for mes, cantidad in sorted(meses.items()):
                 resumen += f"  {mes}: {cantidad} pedidos\n"
 
-        # Ejecutar análisis con plantilla reutilizable
-        print("🤖 Ejecutando agente de predicción de demanda...")
+        print("🧠 Ejecutando agente de predicción de demanda...")
         analisis = run_agent_analysis(
             datos=pedidos_filtrados,
             resumen_preprocesado=resumen,
@@ -112,6 +107,7 @@ def proyectar_pedidos():
             modelo="gpt-4"
         )
 
+        print("✅ Análisis completado. Enviando respuesta...")
         return jsonify({
             "proyeccion": analisis,
             "resumen": resumen
