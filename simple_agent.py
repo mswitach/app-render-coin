@@ -100,6 +100,9 @@ def proyectar_pedidos():
             for mes, cantidad in sorted(meses.items()):
                 resumen += f"  {mes}: {cantidad} pedidos\n"
 
+        print("📄 Resumen generado:")
+        print(resumen[:1000])  # Muestra primeros 1000 caracteres
+
         print("🧠 Ejecutando agente de predicción de demanda...")
         analisis = run_agent_analysis(
             datos=pedidos_filtrados,
